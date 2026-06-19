@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>50 at 50 — music canon</title>
+<style>
+  :root {
+    --bg: #0e0e0e;
+    --bg2: #161616;
+    --bg3: #1e1e1e;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.15);
+    --text: #e8e4dc;
+    --text2: #8a8680;
+    --text3: #5a5652;
+    --accent: #c8a96e;
+    --accent2: rgba(200,169,110,0.12);
+    --danger: #8b3a3a;
+    --warn-bg: rgba(200,169,110,0.15);
+    --warn-text: #c8a96e;
+    --radius: 8px;
+    --radius-lg: 12px;
+    --font: 'Inter', system-ui, sans-serif;
+    --font-serif: 'Georgia', serif;
+    --mono: 'JetBrains Mono', 'Fira Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 15px; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; }
+
+  /* Google Fonts */
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap');
+
+  /* ── Layout ── */
+  .app-shell { max-width: 780px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+  .app-header { margin-bottom: 2.5rem; display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+  .app-title { font-size: 1.5rem; font-weight: 500; letter-spacing: -0.02em; }
+  .app-title span { color: var(--accent); font-family: var(--font-serif); font-style: italic; }
+  .header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+  /* ── Auth / sync ── */
+  .sync-btn { display: flex; align-items: center; gap: 6px; padding: 6px 14px; border: 0.5px solid var(--border2); border-radius: var(--radius); background: none; color: var(--text2); font-size: 12px; cursor: pointer; font-family: var(--font); transition: all 0.15s; }
+  .sync-btn:hover { color: var(--text); border-color: var(--accent); }
+  .sync-btn.connected { color: var(--accent); border-color: rgba(200,169,110,0.3); }
+  .sync-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+  .sync-status { font-size: 11px; color: var(--text3); }
+  .sync-status.ok { color: var(--accent); }
+  .sync-status.err { color: #c06060; }
+
+  /* ── Tabs ── */
+  .tabs { display: flex; border-bottom: 0.5px solid var(--border); margin-bottom: 1.75rem; gap: 0; }
+  .tab { padding: 8px 20px; font-size: 13px; cursor: pointer; border: none; background: none; color: var(--text2); border-bottom: 1.5px solid transparent; margin-bottom: -1px; transition: all 0.15s; font-family: var(--font); }
+  .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+  .tab:hover:not(.active) { color: var(--text); }
+  .tab-count { font-size: 10px; color: var(--text3); margin-left: 5px; }
+  .tab.active .tab-count { color: var(--accent); }
+
+  /* ── Section label ── */
+  .section-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text3); margin: 1.75rem 0 0.75rem; font-weight: 500; }
+
+  /* ── Cards ── */
+  .ranked-list { display: flex; flex-direction: column; gap: 5px; min-height: 4px; }
+  .entry-card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; cursor: grab; transition: border-color 0.15s; }
+  .entry-card:hover { border-color: var(--border2); }
+  .entry-card.dragging { opacity: 0.35; cursor: grabbing; }
+  .entry-card.drag-over { border-color: var(--accent); border-style: dashed; }
+  .entry-card.provisional { background: var(--bg); border-style: dashed; }
+
+  .card-header { display: flex; align-items: center; gap: 8px; padding: 9px 12px; }
+  .drag-handle { color: var(--text3); font-size: 13px; cursor: grab; flex-shrink: 0; line-height: 1; }
+  .rank-badge { font-size: 11px; font-weight: 500; color: var(--text3); min-width: 20px; text-align: right; flex-shrink: 0; font-family: var(--mono); }
+  .entry-name-wrap { flex: 1; min-width: 0; }
+  .entry-name { font-size: 13.5px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .entry-sub { font-size: 11px; color: var(--text3); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .conflict-warn { font-size: 10px; background: var(--warn-bg); color: var(--warn-text); padding: 2px 7px; border-radius: 99px; flex-shrink: 0; display: none; }
+  .conflict-warn.show { display: inline; }
+  .prov-badge { font-size: 10px; color: var(--text3); border: 0.5px solid var(--border); padding: 2px 7px; border-radius: 99px; flex-shrink: 0; }
+  .promote-btn { font-size: 11px; background: none; border: 0.5px solid var(--border2); border-radius: var(--radius); padding: 3px 9px; color: var(--text2); cursor: pointer; font-family: var(--font); transition: all 0.15s; }
+  .promote-btn:hover { color: var(--accent); border-color: rgba(200,169,110,0.4); }
+
+  .card-actions { display: flex; gap: 2px; margin-left: auto; flex-shrink: 0; }
+  .icon-btn { background: none; border: none; cursor: pointer; padding: 4px 5px; color: var(--text3); font-size: 15px; border-radius: var(--radius); line-height: 1; transition: all 0.15s; }
+  .icon-btn:hover { color: var(--text); background: var(--bg3); }
+  .chevron { transition: transform 0.15s; display: inline-block; }
+  .chevron.open { transform: rotate(180deg); }
+
+  /* ── Card body ── */
+  .card-body { padding: 0 12px 12px 40px; display: none; }
+  .card-body.open { display: block; }
+
+  /* ── Fields ── */
+  .field-row { display: flex; gap: 8px; margin-bottom: 7px; flex-wrap: wrap; }
+  .field-group { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 130px; }
+  .field-group.narrow { max-width: 90px; flex: 0 0 90px; }
+  .field-group.wide { flex: 2; }
+  .field-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.07em; }
+  .field-input { font-size: 12.5px; padding: 5px 8px; border: 0.5px solid var(--border); border-radius: var(--radius); background: var(--bg3); color: var(--text); width: 100%; font-family: var(--font); transition: border-color 0.15s; }
+  .field-input:focus { outline: none; border-color: rgba(200,169,110,0.5); }
+  .field-textarea { font-size: 12.5px; padding: 7px 9px; border: 0.5px solid var(--border); border-radius: var(--radius); background: var(--bg3); color: var(--text); width: 100%; font-family: var(--font); resize: vertical; min-height: 64px; line-height: 1.55; transition: border-color 0.15s; }
+  .field-textarea:focus { outline: none; border-color: rgba(200,169,110,0.5); }
+
+  .linked-entity { background: var(--bg3); border-radius: var(--radius); padding: 9px 10px; margin-bottom: 6px; border: 0.5px solid var(--border); }
+  .linked-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 7px; }
+  .linked-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 500; }
+  .add-linked-btn { font-size: 11px; color: var(--text3); background: none; border: none; cursor: pointer; padding: 4px 0; display: flex; align-items: center; gap: 4px; font-family: var(--font); transition: color 0.15s; margin-bottom: 8px; }
+  .add-linked-btn:hover { color: var(--accent); }
+
+  .feelings-wrap { margin-top: 10px; }
+  .feelings-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 4px; }
+
+  /* ── Add / action buttons ── */
+  .add-btn { display: flex; align-items: center; gap: 6px; padding: 8px 14px; border: 0.5px dashed var(--border2); border-radius: var(--radius-lg); background: none; color: var(--text3); font-size: 12.5px; cursor: pointer; width: 100%; justify-content: center; margin-top: 5px; font-family: var(--font); transition: all 0.15s; }
+  .add-btn:hover { color: var(--accent); border-color: rgba(200,169,110,0.4); background: var(--accent2); }
+
+  .bottom-row { display: flex; align-items: center; justify-content: space-between; margin-top: 2rem; flex-wrap: wrap; gap: 10px; }
+  .util-btn { display: flex; align-items: center; gap: 6px; padding: 6px 13px; border: 0.5px solid var(--border2); border-radius: var(--radius); background: none; color: var(--text2); font-size: 12px; cursor: pointer; font-family: var(--font); transition: all 0.15s; }
+  .util-btn:hover { color: var(--text); border-color: var(--border2); background: var(--bg3); }
+
+  .empty-state { font-size: 12px; color: var(--text3); text-align: center; padding: 1.5rem; }
+
+  /* ── Notification toast ── */
+  #toast { position: fixed; bottom: 24px; right: 24px; background: var(--bg3); border: 0.5px solid var(--border2); border-radius: var(--radius); padding: 9px 16px; font-size: 12px; color: var(--text2); opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 999; }
+  #toast.show { opacity: 1; }
+
+  /* ── Login overlay ── */
+  #login-overlay { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 1.5rem; }
+  .login-box { width: 100%; max-width: 320px; display: flex; flex-direction: column; gap: 10px; }
+  .login-title { font-size: 1.4rem; font-weight: 500; letter-spacing: -0.02em; margin-bottom: 2px; text-align: center; }
+  .login-title span { color: var(--accent); font-family: var(--font-serif); font-style: italic; }
+  .login-sub { font-size: 12.5px; color: var(--text2); text-align: center; margin-bottom: 14px; line-height: 1.5; }
+  .login-error { font-size: 12px; color: #d98080; text-align: center; min-height: 0; }
+  .login-error:empty { display: none; }
+  .google-signin-btn { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 10px 16px; font-size: 13px; }
+  .login-hint { font-size: 11px; color: var(--text3); text-align: center; margin-top: 14px; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<div id="login-overlay">
+  <div class="login-box">
+    <div class="login-title">50 at 50 — <span>music canon</span></div>
+    <p class="login-sub">Sign in once per device. Your list stays synced everywhere.</p>
+    <div id="login-error" class="login-error"></div>
+    <button class="util-btn google-signin-btn" onclick="doGoogleSignIn()">
+      <svg viewBox="0 0 48 48" width="16" height="16"><path fill="#4285F4" d="M45.12 24.5c0-1.56-.14-3.06-.4-4.5H24v8.51h11.84c-.51 2.75-2.06 5.08-4.39 6.64v5.52h7.11c4.16-3.83 6.56-9.47 6.56-16.17z"/><path fill="#34A853" d="M24 46c5.94 0 10.92-1.97 14.56-5.33l-7.11-5.52c-1.97 1.32-4.49 2.1-7.45 2.1-5.73 0-10.58-3.87-12.31-9.07H4.34v5.7C7.96 41.07 15.4 46 24 46z"/><path fill="#FBBC05" d="M11.69 28.18A11.97 11.97 0 0 1 11 24c0-1.45.25-2.86.69-4.18v-5.7H4.34A21.99 21.99 0 0 0 2 24c0 3.55.85 6.91 2.34 9.88l7.35-5.7z"/><path fill="#EA4335" d="M24 10.75c3.23 0 6.13 1.11 8.41 3.29l6.31-6.31C34.91 4.18 29.93 2 24 2 15.4 2 7.96 6.93 4.34 14.12l7.35 5.7c1.73-5.2 6.58-9.07 12.31-9.07z"/></svg>
+      Sign in with Google
+    </button>
+    <p class="login-hint">First time here? Same button creates your account — just choose your Google account and you're in, on this device and every other one.</p>
+  </div>
+</div>
+
+<div class="app-shell" id="app-shell" style="display:none">
+  <header class="app-header">
+    <div class="app-title">50 at 50 — <span>music canon</span></div>
+    <div class="header-right">
+      <span class="sync-status" id="sync-status">connecting…</span>
+      <button class="sync-btn connected" id="logout-btn" onclick="doSignOut()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Log out
+      </button>
+      <label class="util-btn" style="cursor:pointer">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Import JSON
+        <input type="file" accept=".json" style="display:none" onchange="importData(event)">
+      </label>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('artists')">Artists <span class="tab-count" id="cnt-artists">0/50</span></button>
+    <button class="tab" onclick="switchTab('albums')">Albums <span class="tab-count" id="cnt-albums">0/50</span></button>
+    <button class="tab" onclick="switchTab('tracks')">Tracks <span class="tab-count" id="cnt-tracks">0/50</span></button>
+  </div>
+
+  <div id="panel-artists">
+    <div id="list-artists" class="ranked-list"></div>
+    <button class="add-btn" onclick="addEntry('artists',false)">+ add artist to ranked list</button>
+    <div class="section-label">Provisional candidates</div>
+    <div id="prov-artists" class="ranked-list"></div>
+    <button class="add-btn" onclick="addEntry('artists',true)">+ add provisional artist</button>
+  </div>
+
+  <div id="panel-albums" style="display:none">
+    <div id="list-albums" class="ranked-list"></div>
+    <button class="add-btn" onclick="addEntry('albums',false)">+ add album to ranked list</button>
+    <div class="section-label">Provisional candidates</div>
+    <div id="prov-albums" class="ranked-list"></div>
+    <button class="add-btn" onclick="addEntry('albums',true)">+ add provisional album</button>
+  </div>
+
+  <div id="panel-tracks" style="display:none">
+    <div id="list-tracks" class="ranked-list"></div>
+    <button class="add-btn" onclick="addEntry('tracks',false)">+ add track to ranked list</button>
+    <div class="section-label">Provisional candidates</div>
+    <div id="prov-tracks" class="ranked-list"></div>
+    <button class="add-btn" onclick="addEntry('tracks',true)">+ add provisional track</button>
+  </div>
+
+  <div class="bottom-row">
+    <button class="util-btn" onclick="exportData()">
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Export JSON
+    </button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script type="module">
+// ─── Firebase config ─────────────────────────────────────────────────────────
+// FILL THIS IN after creating your Firebase project (see README at bottom of file)
+const firebaseConfig = {
+  apiKey: "AIzaSyB0LYZMX4eIouXxBtDBbnsNqf7e0pdAlcY",
+  authDomain: "music-50.firebaseapp.com",
+  projectId: "music-50",
+  storageBucket: "music-50.firebasestorage.app",
+  messagingSenderId: "946759925603",
+  appId: "1:946759925603:web:7b7bd8b9294ebc7b9edd56"
+};
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup,
+  signOut, setPersistence, browserLocalPersistence
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  getFirestore, doc, getDoc, setDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+let fbApp, auth, db, currentUser = null;
+const googleProvider = new GoogleAuthProvider();
+const FIREBASE_CONFIGURED = firebaseConfig.apiKey !== 'YOUR_API_KEY';
+
+if (FIREBASE_CONFIGURED) {
+  fbApp = initializeApp(firebaseConfig);
+  auth = getAuth(fbApp);
+  db = getFirestore(fbApp);
+  setPersistence(auth, browserLocalPersistence).catch(()=>{});
+
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      currentUser = user;
+      document.getElementById('login-overlay').style.display = 'none';
+      document.getElementById('app-shell').style.display = '';
+      if (window.setSyncStatus) window.setSyncStatus('loading…');
+      if (window.loadFromFirestore) await window.loadFromFirestore();
+    } else {
+      currentUser = null;
+      document.getElementById('login-overlay').style.display = 'flex';
+      document.getElementById('app-shell').style.display = 'none';
+    }
+  });
+} else {
+  // Not configured yet — skip login, work locally only
+  document.getElementById('login-overlay').style.display = 'none';
+  document.getElementById('app-shell').style.display = '';
+}
+
+window.doGoogleSignIn = async function() {
+  const errEl = document.getElementById('login-error');
+  errEl.textContent = '';
+  if (!FIREBASE_CONFIGURED) { errEl.textContent = 'Firebase not configured yet — see README in file.'; return; }
+  try {
+    await signInWithPopup(auth, googleProvider);
+  } catch (e) {
+    errEl.textContent = friendlyAuthError(e.code);
+  }
+};
+
+window.doSignOut = async function() {
+  if (auth) await signOut(auth);
+};
+
+function friendlyAuthError(code) {
+  const map = {
+    'auth/popup-closed-by-user': 'Sign-in popup closed before finishing — try again.',
+    'auth/popup-blocked': 'Your browser blocked the popup — allow popups for this site and try again.',
+    'auth/cancelled-popup-request': 'Sign-in was interrupted — try again.',
+    'auth/network-request-failed': 'Network error — check your connection and try again.'
+  };
+  return map[code] || 'Something went wrong. Try again.';
+}
+
+window.loadFromFirestore = async function() {
+  try {
+    const ref = doc(db, 'canon', currentUser.uid);
+    const snap = await getDoc(ref);
+    if (snap.exists() && snap.data().payload) {
+      const loaded = JSON.parse(snap.data().payload);
+      if (window.applyLoadedState) window.applyLoadedState(loaded);
+      window.setSyncStatus('synced', 'ok');
+    } else {
+      window.setSyncStatus('synced (new)', 'ok');
+    }
+  } catch (e) {
+    window.setSyncStatus('load error', 'err');
+    console.error(e);
+  }
+};
+
+window.saveToFirestore = async function() {
+  if (!currentUser) return;
+  try {
+    window.setSyncStatus('saving…');
+    const ref = doc(db, 'canon', currentUser.uid);
+    await setDoc(ref, { payload: JSON.stringify(window.state), updatedAt: Date.now() });
+    window.setSyncStatus('synced ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}), 'ok');
+  } catch (e) {
+    window.setSyncStatus('save error', 'err');
+    console.error(e);
+  }
+};
+
+window.FIREBASE_CONFIGURED = FIREBASE_CONFIGURED;
+</script>
+
+<script>
+// ─── State ───────────────────────────────────────────────────────────────────
+let state = { artists: { ranked: [], provisional: [] }, albums: { ranked: [], provisional: [] }, tracks: { ranked: [], provisional: [] } };
+window.state = state;
+let currentTab = 'artists';
+let dragSrc = null, dragType = null, dragProv = null;
+let saveTimer = null;
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+const genId = () => Math.random().toString(36).slice(2,9);
+const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+function toast(msg, duration=2200) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+function setSyncStatus(msg, cls='') {
+  const el = document.getElementById('sync-status');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'sync-status' + (cls ? ' '+cls : '');
+}
+window.setSyncStatus = setSyncStatus;
+
+// ─── Data model ──────────────────────────────────────────────────────────────
+function makeLinked(type) {
+  if (type === 'artists') return { id: genId(), name: '', nationality: '', recAlbum: '', recAlbumYear: '', recTrack1: '', recTrack1Year: '', recTrack2: '', recTrack2Year: '', recTrack3: '', recTrack3Year: '', sideProjects: [] };
+  if (type === 'albums')  return { id: genId(), artist: '', name: '', year: '', recTrack: '' };
+  if (type === 'tracks')  return { id: genId(), artist: '', name: '', year: '' };
+}
+function makeEntry(type) { return { id: genId(), feelings: '', linked: [makeLinked(type)] }; }
+
+function applyLoadedState(loaded) {
+  state = loaded;
+  window.state = state;
+  localStorage.setItem('canon_50_v1', JSON.stringify(state));
+  renderAll();
+}
+window.applyLoadedState = applyLoadedState;
+
+// ─── Persistence ─────────────────────────────────────────────────────────────
+function scheduleSave() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    localStorage.setItem('canon_50_v1', JSON.stringify(state));
+    if (window.saveToFirestore && window.FIREBASE_CONFIGURED) window.saveToFirestore();
+  }, 800);
+}
+
+function loadLocal() {
+  try {
+    const raw = localStorage.getItem('canon_50_v1');
+    if (raw) { state = JSON.parse(raw); window.state = state; }
+  } catch(e) {}
+}
+
+// ─── Export / Import ──────────────────────────────────────────────────────────
+function exportData() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'canon_50_at_50.json'; a.click();
+  URL.revokeObjectURL(url);
+  toast('Exported');
+}
+
+function importData(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      state = JSON.parse(ev.target.result);
+      window.state = state;
+      localStorage.setItem('canon_50_v1', JSON.stringify(state));
+      if (window.saveToFirestore && window.FIREBASE_CONFIGURED) window.saveToFirestore();
+      renderAll();
+      toast('Imported successfully');
+    } catch { toast('Invalid JSON file'); }
+  };
+  reader.readAsText(file);
+}
+
+// ─── Tabs ─────────────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['artists','albums','tracks'][i]===tab));
+  ['artists','albums','tracks'].forEach(t => document.getElementById('panel-'+t).style.display = t===tab ? '' : 'none');
+}
+
+// ─── Entries ─────────────────────────────────────────────────────────────────
+function addEntry(type, provisional) {
+  const entry = makeEntry(type);
+  state[type][provisional?'provisional':'ranked'].push(entry);
+  scheduleSave();
+  renderAll();
+  setTimeout(() => {
+    const card = document.getElementById('card-'+entry.id);
+    if (card) { openCard(card); card.scrollIntoView({ behavior:'smooth', block:'nearest' }); }
+  }, 40);
+}
+
+function deleteEntry(type, id, provisional) {
+  const arr = state[type][provisional?'provisional':'ranked'];
+  const i = arr.findIndex(e => e.id===id);
+  if (i>-1) arr.splice(i,1);
+  scheduleSave();
+  renderAll();
+}
+
+function promoteEntry(type, id) {
+  const i = state[type].provisional.findIndex(e => e.id===id);
+  if (i>-1) {
+    const [entry] = state[type].provisional.splice(i,1);
+    state[type].ranked.push(entry);
+    scheduleSave();
+    renderAll();
+  }
+}
+
+function openCard(card) {
+  const body = card.querySelector('.card-body');
+  const chev = card.querySelector('.chevron');
+  if (body) body.classList.add('open');
+  if (chev) chev.classList.add('open');
+}
+
+function toggleCard(id) {
+  const card = document.getElementById('card-'+id);
+  const body = card.querySelector('.card-body');
+  const chev = card.querySelector('.chevron');
+  body.classList.toggle('open');
+  chev.classList.toggle('open');
+}
+
+function updateField(type, entryId, field, value, linkedId) {
+  const all = [...state[type].ranked, ...state[type].provisional];
+  const entry = all.find(e => e.id===entryId);
+  if (!entry) return;
+  if (linkedId) { const l = entry.linked.find(l=>l.id===linkedId); if(l) l[field]=value; }
+  else entry[field] = value;
+  scheduleSave();
+  const nameEl = document.getElementById('name-'+entryId);
+  if (nameEl) nameEl.textContent = getDisplayName(entry, type);
+  const subEl = document.getElementById('sub-'+entryId);
+  if (subEl) { const s = getSubline(type,entry); subEl.textContent=s; subEl.style.display=s?'':'none'; }
+  updateWarnings();
+}
+
+function addLinked(type, entryId) {
+  const all = [...state[type].ranked, ...state[type].provisional];
+  const entry = all.find(e=>e.id===entryId);
+  if (!entry) return;
+  entry.linked.push(makeLinked(type));
+  scheduleSave();
+  renderAll();
+  setTimeout(() => {
+    const card = document.getElementById('card-'+entryId);
+    if (card) openCard(card);
+  }, 30);
+}
+
+function removeLinked(type, entryId, linkedId) {
+  const all = [...state[type].ranked, ...state[type].provisional];
+  const entry = all.find(e=>e.id===entryId);
+  if (!entry || entry.linked.length<=1) return;
+  entry.linked = entry.linked.filter(l=>l.id!==linkedId);
+  scheduleSave();
+  renderAll();
+}
+
+// ─── Side projects ────────────────────────────────────────────────────────────
+function addSideProject(entryId, linkedId) {
+  const entry = [...state.artists.ranked, ...state.artists.provisional].find(e=>e.id===entryId);
+  if (!entry) return;
+  const linked = entry.linked.find(l=>l.id===linkedId);
+  if (!linked) return;
+  if (!linked.sideProjects) linked.sideProjects = [];
+  linked.sideProjects.push({ id: genId(), artist: '', album: '', year: '' });
+  scheduleSave();
+  renderAll();
+  setTimeout(() => { const card = document.getElementById('card-'+entryId); if(card) openCard(card); }, 30);
+}
+
+function removeSideProject(entryId, linkedId, spId) {
+  const entry = [...state.artists.ranked, ...state.artists.provisional].find(e=>e.id===entryId);
+  if (!entry) return;
+  const linked = entry.linked.find(l=>l.id===linkedId);
+  if (!linked || !linked.sideProjects) return;
+  linked.sideProjects = linked.sideProjects.filter(sp=>sp.id!==spId);
+  scheduleSave();
+  renderAll();
+}
+
+function updateSideProject(entryId, linkedId, spId, field, value) {
+  const entry = [...state.artists.ranked, ...state.artists.provisional].find(e=>e.id===entryId);
+  if (!entry) return;
+  const linked = entry.linked.find(l=>l.id===linkedId);
+  if (!linked || !linked.sideProjects) return;
+  const sp = linked.sideProjects.find(s=>s.id===spId);
+  if (sp) sp[field] = value;
+  scheduleSave();
+}
+
+// ─── Display names ────────────────────────────────────────────────────────────
+function getDisplayName(entry, type) {
+  if (type === 'artists') return entry.linked.map(l=>l.name).filter(Boolean).join(' / ') || 'Untitled';
+  if (type === 'albums')  return entry.linked.map(l=>l.name).filter(Boolean).join(' / ') || 'Untitled';
+  if (type === 'tracks')  return entry.linked.map(l=>l.name).filter(Boolean).join(' / ') || 'Untitled';
+  return 'Untitled';
+}
+
+function getSubline(type, entry) {
+  if (type === 'artists') {
+    const parts = [];
+    entry.linked.forEach(l => { if(l.nationality) parts.push(l.nationality); });
+    return parts.join(' / ');
+  }
+  if (type === 'albums') {
+    const artists = entry.linked.map(l=>l.artist).filter(Boolean);
+    const years = entry.linked.map(l=>l.year).filter(Boolean);
+    const parts = [];
+    if (artists.length) parts.push(artists.join(' / '));
+    if (years.length) parts.push(years.join(' / '));
+    return parts.join(' · ');
+  }
+  if (type === 'tracks') {
+    const artists = entry.linked.map(l=>l.artist).filter(Boolean);
+    const years = entry.linked.map(l=>l.year).filter(Boolean);
+    const parts = [];
+    if (artists.length) parts.push(artists.join(' / '));
+    if (years.length) parts.push(years.join(' / '));
+    return parts.join(' · ');
+  }
+  return '';
+}
+
+// ─── Conflict detection ───────────────────────────────────────────────────────
+function getArtistNames() {
+  const names = new Set();
+  [...state.artists.ranked, ...state.artists.provisional].forEach(entry =>
+    entry.linked.forEach(l => { if(l.name) names.add(l.name.trim().toLowerCase()); })
+  );
+  return names;
+}
+
+function checkConflict(type, entry) {
+  if (type === 'artists') return false;
+  const artistNames = getArtistNames();
+  return entry.linked.some(l => l.artist && artistNames.has(l.artist.trim().toLowerCase()));
+}
+
+function updateWarnings() {
+  updateCounts();
+  ['albums','tracks'].forEach(type => {
+    [...state[type].ranked, ...state[type].provisional].forEach(entry => {
+      const warn = document.querySelector(`#card-${entry.id} .conflict-warn`);
+      if (warn) warn.classList.toggle('show', checkConflict(type, entry));
+    });
+  });
+}
+
+function updateCounts() {
+  ['artists','albums','tracks'].forEach(t => {
+    const el = document.getElementById('cnt-'+t);
+    if (el) el.textContent = state[t].ranked.length + '/50';
+  });
+}
+
+// ─── Field renderers ──────────────────────────────────────────────────────────
+function renderLinked(type, entry, linked, idx) {
+  const multi = entry.linked.length > 1;
+  const removeBtn = multi ? `<button class="icon-btn" onclick="removeLinked('${type}','${entry.id}','${linked.id}')" title="Remove" style="padding:2px 4px;font-size:13px">✕</button>` : '';
+  const label = type==='tracks' && multi ? `Version ${idx+1}` : type==='artists' && multi ? `Artist ${idx+1}` : type==='albums' && multi ? `Album ${idx+1}` : '';
+
+  if (type === 'artists') return `
+    <div class="linked-entity">
+      ${label ? `<div class="linked-header"><span class="linked-label">${label}</span>${removeBtn}</div>` : (multi ? `<div class="linked-header"><span></span>${removeBtn}</div>` : '')}
+      <div class="field-row">
+        <div class="field-group wide"><div class="field-label">Name</div><input class="field-input" value="${esc(linked.name)}" placeholder="Artist name" oninput="updateField('artists','${entry.id}','name',this.value,'${linked.id}')"></div>
+        <div class="field-group"><div class="field-label">Nationality</div><input class="field-input" value="${esc(linked.nationality)}" placeholder="e.g. British" oninput="updateField('artists','${entry.id}','nationality',this.value,'${linked.id}')"></div>
+      </div>
+      <div class="field-row">
+        <div class="field-group wide"><div class="field-label">Rec. album</div><input class="field-input" value="${esc(linked.recAlbum)}" placeholder="Album title" oninput="updateField('artists','${entry.id}','recAlbum',this.value,'${linked.id}')"></div>
+        <div class="field-group narrow"><div class="field-label">Year</div><input class="field-input" value="${esc(linked.recAlbumYear)}" placeholder="1991" oninput="updateField('artists','${entry.id}','recAlbumYear',this.value,'${linked.id}')"></div>
+      </div>
+      <div class="field-row">
+        <div class="field-group wide"><div class="field-label">Rec. track 1</div><input class="field-input" value="${esc(linked.recTrack1)}" placeholder="Track title" oninput="updateField('artists','${entry.id}','recTrack1',this.value,'${linked.id}')"></div>
+        <div class="field-group narrow"><div class="field-label">Year</div><input class="field-input" value="${esc(linked.recTrack1Year)}" placeholder="1991" oninput="updateField('artists','${entry.id}','recTrack1Year',this.value,'${linked.id}')"></div>
+      </div>
+      <div class="field-row">
+        <div class="field-group wide"><div class="field-label">Rec. track 2</div><input class="field-input" value="${esc(linked.recTrack2)}" placeholder="Track title" oninput="updateField('artists','${entry.id}','recTrack2',this.value,'${linked.id}')"></div>
+        <div class="field-group narrow"><div class="field-label">Year</div><input class="field-input" value="${esc(linked.recTrack2Year)}" placeholder="1991" oninput="updateField('artists','${entry.id}','recTrack2Year',this.value,'${linked.id}')"></div>
+      </div>
+      <div class="field-row">
+        <div class="field-group wide"><div class="field-label">Rec. track 3</div><input class="field-input" value="${esc(linked.recTrack3)}" placeholder="Track title" oninput="updateField('artists','${entry.id}','recTrack3',this.value,'${linked.id}')"></div>
+        <div class="field-group narrow"><div class="field-label">Year</div><input class="field-input" value="${esc(linked.recTrack3Year)}" placeholder="1991" oninput="updateField('artists','${entry.id}','recTrack3Year',this.value,'${linked.id}')"></div>
+      </div>
+      <div style="margin-top:10px;border-top:0.5px solid var(--border);padding-top:10px">
+        <div class="field-label" style="margin-bottom:6px">Notable side projects</div>
+        ${(linked.sideProjects||[]).map(sp => `
+          <div style="display:flex;gap:6px;align-items:flex-start;margin-bottom:6px">
+            <div style="flex:1.4;display:flex;flex-direction:column;gap:3px">
+              <div class="field-label">Artist / project</div>
+              <input class="field-input" value="${esc(sp.artist)}" placeholder="e.g. Paul McCartney" oninput="updateSideProject('${entry.id}','${linked.id}','${sp.id}','artist',this.value)">
+            </div>
+            <div style="flex:2;display:flex;flex-direction:column;gap:3px">
+              <div class="field-label">Album</div>
+              <input class="field-input" value="${esc(sp.album)}" placeholder="e.g. Ram" oninput="updateSideProject('${entry.id}','${linked.id}','${sp.id}','album',this.value)">
+            </div>
+            <div style="flex:0 0 72px;display:flex;flex-direction:column;gap:3px">
+              <div class="field-label">Year</div>
+              <input class="field-input" value="${esc(sp.year)}" placeholder="1971" oninput="updateSideProject('${entry.id}','${linked.id}','${sp.id}','year',this.value)">
+            </div>
+            <button class="icon-btn" style="margin-top:18px;padding:3px 5px;font-size:12px;flex-shrink:0" onclick="removeSideProject('${entry.id}','${linked.id}','${sp.id}')" title="Remove">✕</button>
+          </div>`).join('')}
+        <button class="add-linked-btn" onclick="addSideProject('${entry.id}','${linked.id}')">+ add side project</button>
+      </div>
+    </div>`;
+
+  if (type === 'albums') return `
+    <div class="linked-entity">
+      ${label ? `<div class="linked-header"><span class="linked-label">${label}</span>${removeBtn}</div>` : (multi ? `<div class="linked-header"><span></span>${removeBtn}</div>` : '')}
+      <div class="field-row">
+        <div class="field-group wide"><div class="field-label">Artist</div><input class="field-input" value="${esc(linked.artist)}" placeholder="Artist name" oninput="updateField('albums','${entry.id}','artist',this.value,'${linked.id}')"></div>
+      </div>
+      <div class="field-row">
+        <div class="field-group wide"><div class="field-label">Album name</div><input class="field-input" value="${esc(linked.name)}" placeholder="Album title" oninput="updateField('albums','${entry.id}','name',this.value,'${linked.id}')"></div>
+        <div class="field-group narrow"><div class="field-label">Year</div><input class="field-input" value="${esc(linked.year)}" placeholder="1991" oninput="updateField('albums','${entry.id}','year',this.value,'${linked.id}')"></div>
+      </div>
+      <div class="field-row">
+        <div class="field-group wide"><div class="field-label">Rec. track</div><input class="field-input" value="${esc(linked.recTrack)}" placeholder="Best entry point" oninput="updateField('albums','${entry.id}','recTrack',this.value,'${linked.id}')"></div>
+      </div>
+    </div>`;
+
+  if (type === 'tracks') return `
+    <div class="linked-entity">
+      ${label ? `<div class="linked-header"><span class="linked-label">${label}</span>${removeBtn}</div>` : (multi ? `<div class="linked-header"><span></span>${removeBtn}</div>` : '')}
+      <div class="field-row">
+        <div class="field-group wide"><div class="field-label">Artist</div><input class="field-input" value="${esc(linked.artist)}" placeholder="Artist name" oninput="updateField('tracks','${entry.id}','artist',this.value,'${linked.id}')"></div>
+      </div>
+      <div class="field-row">
+        <div class="field-group wide"><div class="field-label">Track name</div><input class="field-input" value="${esc(linked.name)}" placeholder="Track title" oninput="updateField('tracks','${entry.id}','name',this.value,'${linked.id}')"></div>
+        <div class="field-group narrow"><div class="field-label">Year</div><input class="field-input" value="${esc(linked.year)}" placeholder="1964" oninput="updateField('tracks','${entry.id}','year',this.value,'${linked.id}')"></div>
+      </div>
+    </div>`;
+}
+
+function addLinkedLabel(type) {
+  if (type==='artists') return '+ add another artist to this entry';
+  if (type==='albums')  return '+ add another album to this entry';
+  if (type==='tracks')  return '+ add another version to this entry';
+}
+
+// ─── Card render ──────────────────────────────────────────────────────────────
+function renderCard(type, entry, rank, provisional) {
+  const name = getDisplayName(entry, type);
+  const sub = getSubline(type, entry);
+  const conflict = checkConflict(type, entry);
+  return `
+    <div class="entry-card ${provisional?'provisional':''}" id="card-${entry.id}"
+      draggable="true"
+      ondragstart="onDragStart(event,'${type}','${entry.id}',${provisional})"
+      ondragover="onDragOver(event)"
+      ondrop="onDrop(event,'${type}','${entry.id}',${provisional})"
+      ondragleave="onDragLeave(event)"
+      ondragend="onDragEnd()">
+      <div class="card-header">
+        <span class="drag-handle">⠿</span>
+        ${provisional ? '<span class="prov-badge">provisional</span>' : `<span class="rank-badge">${rank}</span>`}
+        <div class="entry-name-wrap">
+          <div class="entry-name" id="name-${entry.id}">${esc(name)}</div>
+          <div class="entry-sub" id="sub-${entry.id}" ${!sub?'style="display:none"':''}>${esc(sub)}</div>
+        </div>
+        <span class="conflict-warn ${conflict?'show':''}">⚠ conflict</span>
+        ${provisional ? `<button class="promote-btn" onclick="promoteEntry('${type}','${entry.id}')">→ ranked</button>` : ''}
+        <div class="card-actions">
+          <button class="icon-btn" onclick="toggleCard('${entry.id}')" title="Expand"><span class="chevron">▾</span></button>
+          <button class="icon-btn" onclick="deleteEntry('${type}','${entry.id}',${provisional})" title="Delete">✕</button>
+        </div>
+      </div>
+      <div class="card-body" id="body-${entry.id}">
+        ${entry.linked.map((l,i) => renderLinked(type, entry, l, i)).join('')}
+        <button class="add-linked-btn" onclick="addLinked('${type}','${entry.id}')">${addLinkedLabel(type)}</button>
+        <div class="feelings-wrap">
+          <div class="feelings-label">Personal feelings</div>
+          <textarea class="field-textarea" placeholder="Why does this matter to you? What does it mean?" oninput="updateField('${type}','${entry.id}','feelings',this.value)">${esc(entry.feelings)}</textarea>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ─── Render ───────────────────────────────────────────────────────────────────
+const ARTICLES = /^(the|a|an|el|la|los|las|les|le|de|het)\s+/i;
+function sortKey(entry, type) {
+  return getDisplayName(entry, type).toLowerCase().replace(ARTICLES, '').trim();
+}
+
+function renderList(type) {
+  const ranked = document.getElementById('list-'+type);
+  const prov = document.getElementById('prov-'+type);
+  if (!ranked || !prov) return;
+  ranked.innerHTML = state[type].ranked.length
+    ? state[type].ranked.map((e,i) => renderCard(type,e,i+1,false)).join('')
+    : '<div class="empty-state">No ranked entries yet</div>';
+  const sortedProv = [...state[type].provisional].sort((a,b) => sortKey(a,type).localeCompare(sortKey(b,type)));
+  prov.innerHTML = sortedProv.length
+    ? sortedProv.map(e => renderCard(type,e,null,true)).join('')
+    : '<div class="empty-state">No provisional candidates</div>';
+}
+
+function renderAll() { window.state = state; renderList('artists'); renderList('albums'); renderList('tracks'); updateWarnings(); }
+window.renderAll = renderAll;
+
+// ─── Drag & drop ──────────────────────────────────────────────────────────────
+function onDragStart(e, type, id, provisional) {
+  dragSrc=id; dragType=type; dragProv=provisional;
+  setTimeout(() => { const c=document.getElementById('card-'+id); if(c) c.classList.add('dragging'); }, 0);
+}
+function onDragOver(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+function onDragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+function onDragEnd() { document.querySelectorAll('.entry-card').forEach(c=>c.classList.remove('dragging','drag-over')); }
+function onDrop(e, type, targetId, targetProv) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (dragSrc===targetId || dragType!==type || dragProv!==targetProv) return;
+  const arr = state[type][targetProv?'provisional':'ranked'];
+  const fi = arr.findIndex(e=>e.id===dragSrc);
+  const ti = arr.findIndex(e=>e.id===targetId);
+  if (fi<0||ti<0) return;
+  const [moved] = arr.splice(fi,1);
+  arr.splice(ti,0,moved);
+  scheduleSave();
+  renderAll();
+}
+
+// ─── Boot ─────────────────────────────────────────────────────────────────────
+loadLocal();
+renderAll();
+
+</script>
+
+<!--
+════════════════════════════════════════════════════════════════════════════════
+  README — SETUP INSTRUCTIONS
+════════════════════════════════════════════════════════════════════════════════
+
+STEP 1: Deploy to GitHub Pages
+───────────────────────────────
+1. Copy this file into your phoebehamlin-cloud.github.io repo,
+   e.g. at /canon/index.html
+2. Push to main. The app will be live at:
+   https://phoebehamlin-cloud.github.io/canon/
+
+This works immediately with local-only storage (per browser). Do the steps
+below whenever you want true cross-device sync — takes about 10 minutes.
+
+STEP 2: Create a Firebase project
+───────────────────────────────────
+1. Go to https://console.firebase.google.com/
+2. Click "Add project" → name it anything (e.g. "canon-50-at-50") → finish
+   the wizard (you can skip Google Analytics, not needed here)
+
+STEP 3: Register a Web App
+─────────────────────────────
+1. In your new project, click the "</>" (Web) icon to add a web app
+2. Give it a nickname (e.g. "canon-app") — no need to set up Firebase Hosting
+3. Firebase will show you a `firebaseConfig` object with apiKey, authDomain,
+   projectId, etc. — copy the whole object, you'll need it in Step 6.
+
+STEP 4: Enable Google Sign-In
+─────────────────────────────────
+1. In the left sidebar: Build → Authentication → Get started
+   (or just "Authentication" if already past Get started)
+2. Sign-in method tab → click "Google" in the provider list
+3. Toggle Enable
+4. Set a "Project support email" (any email you have — required by Google)
+5. Save
+
+That's it — no separate consent screen or client ID setup needed; Firebase
+handles the Google OAuth wiring automatically once this is enabled.
+
+STEP 5: Enable Firestore (the database)
+───────────────────────────────────────────
+1. In the left sidebar: Build → Firestore Database → Create database
+2. Choose any region close to you, start in "Production mode"
+3. Once created, go to the "Rules" tab and replace the rules with:
+
+   rules_version = '2';
+   service cloud.firestore {
+     match /databases/{database}/documents {
+       match /canon/{userId} {
+         allow read, write: if request.auth != null && request.auth.uid == userId;
+       }
+     }
+   }
+
+   This ensures only YOU (logged in) can read or write your own data —
+   nobody else can access it, even other people with the same app code.
+4. Click "Publish"
+
+STEP 6: Paste your config into this file
+─────────────────────────────────────────────
+Near the top of the first <script type="module"> block, replace:
+
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+
+with the actual object Firebase gave you in Step 3. Save, push to GitHub.
+
+STEP 7: Use it
+───────────────
+- Open https://phoebehamlin-cloud.github.io/canon/
+- Click "Sign in with Google", choose your Google account in the popup
+- On any other computer/phone, open the same URL and sign in with the
+  same Google account — your data appears automatically
+- You stay signed in indefinitely on each device (no repeated prompts,
+  unless you clear browser data or use a private/incognito window)
+- "Log out" only if you want to switch accounts or sign out deliberately
+- Export/Import JSON still works as a manual backup option anytime
+
+Note on privacy: Firestore rules lock your data to your account only.
+Firebase's free tier ("Spark plan") comfortably covers a project like this —
+you won't hit any limits with a few hundred list entries.
+
+════════════════════════════════════════════════════════════════════════════════
+-->
+</body>
+</html>
