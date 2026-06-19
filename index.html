@@ -346,7 +346,7 @@ window.setSyncStatus = setSyncStatus;
 function makeLinked(type) {
   if (type === 'artists') return { id: genId(), name: '', nationality: '', recAlbum: '', recAlbumYear: '', recTrack1: '', recTrack1Year: '', recTrack2: '', recTrack2Year: '', recTrack3: '', recTrack3Year: '', sideProjects: [] };
   if (type === 'albums')  return { id: genId(), artist: '', name: '', year: '', recTrack: '' };
-  if (type === 'tracks')  return { id: genId(), artist: '', name: '', year: '' };
+  if (type === 'tracks')  return { id: genId(), artist: '', name: '', album: '', year: '' };
 }
 function makeEntry(type) { return { id: genId(), feelings: '', linked: [makeLinked(type)] }; }
 
@@ -545,9 +545,11 @@ function getSubline(type, entry) {
   }
   if (type === 'tracks') {
     const artists = entry.linked.map(l=>l.artist).filter(Boolean);
+    const albums = entry.linked.map(l=>l.album).filter(Boolean);
     const years = entry.linked.map(l=>l.year).filter(Boolean);
     const parts = [];
     if (artists.length) parts.push(artists.join(' / '));
+    if (albums.length) parts.push(albums.join(' / '));
     if (years.length) parts.push(years.join(' / '));
     return parts.join(' · ');
   }
@@ -661,6 +663,9 @@ function renderLinked(type, entry, linked, idx) {
       <div class="field-row">
         <div class="field-group wide"><div class="field-label">Track name</div><input class="field-input" value="${esc(linked.name)}" placeholder="Track title" oninput="updateField('tracks','${entry.id}','name',this.value,'${linked.id}')"></div>
         <div class="field-group narrow"><div class="field-label">Year</div><input class="field-input" value="${esc(linked.year)}" placeholder="1964" oninput="updateField('tracks','${entry.id}','year',this.value,'${linked.id}')"></div>
+      </div>
+      <div class="field-row">
+        <div class="field-group wide"><div class="field-label">Album</div><input class="field-input" value="${esc(linked.album)}" placeholder="Album this track is from" oninput="updateField('tracks','${entry.id}','album',this.value,'${linked.id}')"></div>
       </div>
     </div>`;
 }
