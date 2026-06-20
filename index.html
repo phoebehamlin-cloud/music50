@@ -344,9 +344,9 @@ window.setSyncStatus = setSyncStatus;
 
 // ─── Data model ──────────────────────────────────────────────────────────────
 function makeLinked(type) {
-  if (type === 'artists') return { id: genId(), name: '', nationality: '', recAlbum: '', recAlbumYear: '', recTrack1: '', recTrack1Year: '', recTrack2: '', recTrack2Year: '', recTrack3: '', recTrack3Year: '', sideProjects: [] };
-  if (type === 'albums')  return { id: genId(), artist: '', name: '', year: '', recTrack: '' };
-  if (type === 'tracks')  return { id: genId(), artist: '', name: '', album: '', year: '' };
+  if (type === 'artists') return { id: genId(), name: '', nationality: '', recAlbum: '', recAlbumYear: '', recTrack1: '', recTrack1Album: '', recTrack1Year: '', recTrack2: '', recTrack2Album: '', recTrack2Year: '', recTrack3: '', recTrack3Album: '', recTrack3Year: '', sideProjects: [] };
+  if (type === 'albums')  return { id: genId(), artist: '', name: '', nationality: '', year: '', recTrack: '' };
+  if (type === 'tracks')  return { id: genId(), artist: '', name: '', album: '', nationality: '', year: '' };
 }
 function makeEntry(type) { return { id: genId(), feelings: '', linked: [makeLinked(type)] }; }
 
@@ -609,13 +609,22 @@ function renderLinked(type, entry, linked, idx) {
         <div class="field-group wide"><div class="field-label">Rec. track 1</div><input class="field-input" value="${esc(linked.recTrack1)}" placeholder="Track title" oninput="updateField('artists','${entry.id}','recTrack1',this.value,'${linked.id}')"></div>
         <div class="field-group narrow"><div class="field-label">Year</div><input class="field-input" value="${esc(linked.recTrack1Year)}" placeholder="1991" oninput="updateField('artists','${entry.id}','recTrack1Year',this.value,'${linked.id}')"></div>
       </div>
+      <div class="field-row" style="margin-top:-3px">
+        <div class="field-group wide"><div class="field-label">Track 1 album</div><input class="field-input" value="${esc(linked.recTrack1Album)}" placeholder="Album it's from" oninput="updateField('artists','${entry.id}','recTrack1Album',this.value,'${linked.id}')"></div>
+      </div>
       <div class="field-row">
         <div class="field-group wide"><div class="field-label">Rec. track 2</div><input class="field-input" value="${esc(linked.recTrack2)}" placeholder="Track title" oninput="updateField('artists','${entry.id}','recTrack2',this.value,'${linked.id}')"></div>
         <div class="field-group narrow"><div class="field-label">Year</div><input class="field-input" value="${esc(linked.recTrack2Year)}" placeholder="1991" oninput="updateField('artists','${entry.id}','recTrack2Year',this.value,'${linked.id}')"></div>
       </div>
+      <div class="field-row" style="margin-top:-3px">
+        <div class="field-group wide"><div class="field-label">Track 2 album</div><input class="field-input" value="${esc(linked.recTrack2Album)}" placeholder="Album it's from" oninput="updateField('artists','${entry.id}','recTrack2Album',this.value,'${linked.id}')"></div>
+      </div>
       <div class="field-row">
         <div class="field-group wide"><div class="field-label">Rec. track 3</div><input class="field-input" value="${esc(linked.recTrack3)}" placeholder="Track title" oninput="updateField('artists','${entry.id}','recTrack3',this.value,'${linked.id}')"></div>
         <div class="field-group narrow"><div class="field-label">Year</div><input class="field-input" value="${esc(linked.recTrack3Year)}" placeholder="1991" oninput="updateField('artists','${entry.id}','recTrack3Year',this.value,'${linked.id}')"></div>
+      </div>
+      <div class="field-row" style="margin-top:-3px">
+        <div class="field-group wide"><div class="field-label">Track 3 album</div><input class="field-input" value="${esc(linked.recTrack3Album)}" placeholder="Album it's from" oninput="updateField('artists','${entry.id}','recTrack3Album',this.value,'${linked.id}')"></div>
       </div>
       <div style="margin-top:10px;border-top:0.5px solid var(--border);padding-top:10px">
         <div class="field-label" style="margin-bottom:6px">Notable side projects</div>
@@ -644,6 +653,7 @@ function renderLinked(type, entry, linked, idx) {
       ${label ? `<div class="linked-header"><span class="linked-label">${label}</span>${removeBtn}</div>` : (multi ? `<div class="linked-header"><span></span>${removeBtn}</div>` : '')}
       <div class="field-row">
         <div class="field-group wide"><div class="field-label">Artist</div><input class="field-input" value="${esc(linked.artist)}" placeholder="Artist name" oninput="updateField('albums','${entry.id}','artist',this.value,'${linked.id}')"></div>
+        <div class="field-group"><div class="field-label">Nationality</div><input class="field-input" value="${esc(linked.nationality)}" placeholder="e.g. British" oninput="updateField('albums','${entry.id}','nationality',this.value,'${linked.id}')"></div>
       </div>
       <div class="field-row">
         <div class="field-group wide"><div class="field-label">Album name</div><input class="field-input" value="${esc(linked.name)}" placeholder="Album title" oninput="updateField('albums','${entry.id}','name',this.value,'${linked.id}')"></div>
@@ -659,6 +669,7 @@ function renderLinked(type, entry, linked, idx) {
       ${label ? `<div class="linked-header"><span class="linked-label">${label}</span>${removeBtn}</div>` : (multi ? `<div class="linked-header"><span></span>${removeBtn}</div>` : '')}
       <div class="field-row">
         <div class="field-group wide"><div class="field-label">Artist</div><input class="field-input" value="${esc(linked.artist)}" placeholder="Artist name" oninput="updateField('tracks','${entry.id}','artist',this.value,'${linked.id}')"></div>
+        <div class="field-group"><div class="field-label">Nationality</div><input class="field-input" value="${esc(linked.nationality)}" placeholder="e.g. British" oninput="updateField('tracks','${entry.id}','nationality',this.value,'${linked.id}')"></div>
       </div>
       <div class="field-row">
         <div class="field-group wide"><div class="field-label">Track name</div><input class="field-input" value="${esc(linked.name)}" placeholder="Track title" oninput="updateField('tracks','${entry.id}','name',this.value,'${linked.id}')"></div>
