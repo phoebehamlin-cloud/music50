@@ -539,7 +539,7 @@ function showWebView() {
 
   let html = '';
 
-  // Row 1: column headers (grid row 1)
+  // Row 1: column headers
   types.forEach((type, col) => {
     const total = state[type].ranked.length;
     html += `<div style="grid-column:${col+1};grid-row:1;${WV.sans}font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:#9e9890;font-weight:500;padding-bottom:10px;border-bottom:0.5px solid #c8c4be;margin-bottom:1.5rem;">${colTitles[col]} <span style="opacity:0.6">${total}/50</span></div>`;
@@ -547,19 +547,19 @@ function showWebView() {
 
   // Rows 2..maxLen+1: entries (reversed so lowest rank at top, #1 at bottom)
   for (let i = 0; i < maxLen; i++) {
-    const gridRow = i + 2; // row 1 is headers
+    const gridRow = (i + 1) * 2; // even rows = content, odd rows = dividers
+    const dividerRow = gridRow + 1;
     types.forEach((type, col) => {
       const entries = state[type].ranked;
       const total = entries.length;
-      // reversed: i=0 → lowest rank (highest number), i=total-1 → rank 1
       const entry = entries[total - 1 - i];
-      let cellHtml = '';
-      if (entry) {
-        cellHtml = renderers[col](entry, i + 1, total);
-      }
-      // Always render the cell (empty if no entry at this rank) so grid rows stay locked
-      html += `<div style="grid-column:${col+1};grid-row:${gridRow};padding-bottom:1.5rem;${i < maxLen-1 ? 'border-bottom:0.5px solid #d8d4ce;margin-bottom:1.5rem;' : ''}">${cellHtml}</div>`;
+      let cellHtml = entry ? renderers[col](entry, i + 1, total) : '';
+      html += `<div style="grid-column:${col+1};grid-row:${gridRow};padding-bottom:1.5rem;">${cellHtml}</div>`;
     });
+    // Full-width divider spanning all 3 columns
+    if (i < maxLen - 1) {
+      html += `<div style="grid-column:1/4;grid-row:${dividerRow};border-top:0.5px solid #d8d4ce;margin-bottom:1.5rem;"></div>`;
+    }
   }
 
   grid.innerHTML = html;
