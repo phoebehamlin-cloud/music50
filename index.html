@@ -228,16 +228,19 @@
 </div>
 
 <!-- ── Webpage view overlay ── -->
-<div id="web-view-overlay" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:500;overflow-y:auto;">
-  <div style="max-width:1100px;margin:0 auto;padding:3rem 2rem 5rem;">
-    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:3rem;flex-wrap:wrap;gap:1rem;">
+<div id="web-view-overlay" style="display:none;position:fixed;inset:0;background:#f7f4ef;z-index:500;overflow-y:auto;font-family:'Georgia',serif;">
+  <div style="max-width:1200px;margin:0 auto;padding:3rem 2.5rem 6rem;">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:1rem;border-bottom:2px solid #1a1816;padding-bottom:1.25rem;">
       <div>
-        <h1 style="font-size:2rem;font-weight:500;letter-spacing:-0.02em;">50 at 50</h1>
-        <p style="font-size:1rem;color:var(--text2);font-family:var(--font-serif);font-style:italic;margin-top:4px;">a personal music canon</p>
+        <h1 style="font-size:2.75rem;font-weight:400;letter-spacing:-0.03em;font-family:'Georgia',serif;font-style:italic;">50 at 50</h1>
+        <p style="font-size:0.9rem;color:#6b6660;font-family:'Inter',sans-serif;letter-spacing:0.06em;text-transform:uppercase;margin-top:4px;">a personal music canon</p>
       </div>
-      <button class="util-btn" onclick="hideWebView()">← back to editor</button>
+      <button onclick="hideWebView()" style="font-family:'Inter',sans-serif;font-size:12px;padding:6px 14px;border:0.5px solid #9e9890;border-radius:6px;background:none;cursor:pointer;color:#6b6660;">← back to editor</button>
     </div>
-    <div id="web-view-content" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:2.5rem;align-items:start;">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:3rem;align-items:start;margin-top:2.5rem;">
+      <div id="wv-col-artists"></div>
+      <div id="wv-col-albums"></div>
+      <div id="wv-col-tracks"></div>
     </div>
   </div>
 </div>
@@ -430,49 +433,120 @@ function demoteEntry(type, id) {
 }
 
 // ─── Webpage view ─────────────────────────────────────────────────────────────
-function showWebView() {
-  const content = document.getElementById('web-view-content');
-  const cols = ['artists','albums','tracks'].map(type => {
-    const entries = [...state[type].ranked].reverse(); // 50 down to 1, display flipped so #1 at bottom
-    const total = state[type].ranked.length;
-    const rows = entries.map((entry, i) => {
-      const rank = total - i;
-      const name = getDisplayName(entry, type);
-      const countries = entry.linked.map(l => l.nationality||l.country||'').filter(Boolean);
-      const flags = [...new Set(countries)].map(c => flag(c)).filter(Boolean).join(' ');
-      const years = entry.linked.map(l => l.year).filter(Boolean).join(' / ');
-      let meta = '';
-      if (type === 'artists') {
-        const nat = entry.linked.map(l => (flag(l.nationality||'') || (l.nationality||''))).filter(Boolean).join(' / ');
-        meta = nat;
-      } else if (type === 'albums') {
-        const artist = entry.linked.map(l=>l.artist).filter(Boolean).join(' / ');
-        const nat = entry.linked.map(l => flag(l.nationality||'')).filter(Boolean).join(' ');
-        meta = [artist, nat, years].filter(Boolean).join(' · ');
-      } else if (type === 'tracks') {
-        const artist = entry.linked.map(l=>l.artist).filter(Boolean).join(' / ');
-        const album = entry.linked.map(l=>l.album).filter(Boolean).join(' / ');
-        const nat = entry.linked.map(l => flag(l.nationality||'')).filter(Boolean).join(' ');
-        meta = [artist, album, nat, years].filter(Boolean).join(' · ');
-      }
-      const feelings = entry.feelings ? `<div class="wv-feelings">${esc(entry.feelings)}</div>` : '';
-      return `<div class="wv-entry">
-        <div class="wv-rank">${rank}</div>
-        <div class="wv-body">
-          <div class="wv-name">${esc(name)}</div>
-          ${meta ? `<div class="wv-meta">${meta}</div>` : ''}
-          ${feelings}
-        </div>
-      </div>`;
-    }).join('<hr class="wv-divider">');
-    return `<div>
-      <div class="wv-col-title">${type.charAt(0).toUpperCase()+type.slice(1)} <span style="opacity:0.5">${total}/50</span></div>
-      ${rows || '<div class="empty-state">Nothing ranked yet</div>'}
-    </div>`;
+const WV = {
+  sans: "font-family:'Inter',sans-serif;",
+  serif: "font-family:'Georgia',serif;",
+  label: "font-family:'Inter',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:#9e9890;margin-bottom:2px;",
+  val: "font-size:12.5px;color:#1a1816;line-height:1.5;",
+  divider: "border:none;border-top:0.5px solid #d8d4ce;margin:1.5rem 0;",
+};
+
+function wvField(label, value) {
+  if (!value) return '';
+  return `<div style="margin-top:6px"><div style="${WV.label}">${label}</div><div style="${WV.val}">${esc(value)}</div></div>`;
+}
+
+function wvRenderArtist(entry, rank, total) {
+  const names = entry.linked.map(l=>l.name).filter(Boolean);
+  const countries = entry.linked.map(l=>l.nationality).filter(Boolean);
+  const flagStr = countries.map(c=>flag(c)).filter(Boolean).join(' ');
+  const countryStr = countries.join(' / ');
+
+  let recs = '';
+  entry.linked.forEach((l, li) => {
+    const prefix = entry.linked.length > 1 ? `<span style="color:#9e9890;">${esc(l.name||('Artist '+(li+1)))}: </span>` : '';
+    const albumLine = [l.recAlbum, l.recAlbumYear].filter(Boolean).join(', ');
+    const t1 = [l.recTrack1, l.recTrack1Album, l.recTrack1Year].filter(Boolean).join(' · ');
+    const t2 = [l.recTrack2, l.recTrack2Album, l.recTrack2Year].filter(Boolean).join(' · ');
+    const t3 = [l.recTrack3, l.recTrack3Album, l.recTrack3Year].filter(Boolean).join(' · ');
+    if (albumLine) recs += `<div style="margin-top:5px"><div style="${WV.label}">Rec. album</div><div style="${WV.val}">${prefix}${esc(albumLine)}</div></div>`;
+    if (t1||t2||t3) {
+      const tracks = [t1,t2,t3].filter(Boolean).map(t=>`<div style="${WV.val};margin-top:1px">${prefix}${esc(t)}</div>`).join('');
+      recs += `<div style="margin-top:5px"><div style="${WV.label}">Rec. tracks</div>${tracks}</div>`;
+    }
+    // side projects
+    if (l.sideProjects && l.sideProjects.length) {
+      const sps = l.sideProjects.filter(sp=>sp.artist||sp.album).map(sp=>{
+        return esc([sp.artist, sp.album, sp.year].filter(Boolean).join(' — '));
+      }).join('<br>');
+      if (sps) recs += `<div style="margin-top:5px"><div style="${WV.label}">Notable side projects</div><div style="${WV.val}">${sps}</div></div>`;
+    }
   });
-  content.innerHTML = cols.join('');
+
+  return `
+    <div style="margin-bottom:2rem">
+      <div style="${WV.sans}font-size:11px;color:#9e9890;margin-bottom:6px;display:flex;align-items:center;gap:8px;">
+        <span style="font-size:1.1rem;font-weight:500;color:#1a1816;font-family:'Georgia',serif;">${total - rank + 1}</span>
+        ${flagStr ? `<span>${flagStr}</span>` : ''}
+        ${countryStr ? `<span>${esc(countryStr)}</span>` : ''}
+      </div>
+      <div style="${WV.serif}font-size:1.5rem;font-style:italic;line-height:1.15;color:#1a1816;margin-bottom:8px;">${names.map(n=>esc(n)).join(' / ')}</div>
+      ${recs}
+      ${entry.feelings ? `<div style="margin-top:10px;font-size:13px;color:#4a4642;line-height:1.65;${WV.serif}font-style:italic;">${esc(entry.feelings)}</div>` : ''}
+    </div>`;
+}
+
+function wvRenderAlbum(entry, rank, total) {
+  const names = entry.linked.map(l=>l.name).filter(Boolean);
+  let details = '';
+  entry.linked.forEach((l, li) => {
+    const prefix = entry.linked.length > 1 ? `<span style="color:#9e9890;">${esc(l.name||('Album '+(li+1)))}: </span>` : '';
+    if (l.artist) details += `<div style="margin-top:4px"><div style="${WV.label}">Artist</div><div style="${WV.val}">${prefix}${esc(l.artist)}${l.nationality ? ' '+flag(l.nationality) : ''}</div></div>`;
+    if (l.year) details += wvField('Year', l.year);
+    if (l.recTrack) details += wvField('Rec. track', l.recTrack);
+  });
+  return `
+    <div style="margin-bottom:2rem">
+      <div style="${WV.sans}font-size:11px;color:#9e9890;margin-bottom:6px;">
+        <span style="font-size:1.1rem;font-weight:500;color:#1a1816;font-family:'Georgia',serif;">${total - rank + 1}</span>
+      </div>
+      <div style="${WV.serif}font-size:1.5rem;font-style:italic;line-height:1.15;color:#1a1816;margin-bottom:8px;">${names.map(n=>esc(n)).join(' / ')}</div>
+      ${details}
+      ${entry.feelings ? `<div style="margin-top:10px;font-size:13px;color:#4a4642;line-height:1.65;${WV.serif}font-style:italic;">${esc(entry.feelings)}</div>` : ''}
+    </div>`;
+}
+
+function wvRenderTrack(entry, rank, total) {
+  const names = entry.linked.map(l=>l.name).filter(Boolean);
+  let details = '';
+  entry.linked.forEach((l, li) => {
+    const prefix = entry.linked.length > 1 ? `<span style="color:#9e9890;">${esc(l.name||('Version '+(li+1)))}: </span>` : '';
+    const artistLine = [l.artist, l.nationality ? flag(l.nationality) : ''].filter(Boolean).join(' ');
+    if (artistLine) details += `<div style="margin-top:4px"><div style="${WV.label}">Artist</div><div style="${WV.val}">${prefix}${esc(artistLine)}</div></div>`;
+    if (l.album) details += wvField('Album', l.album);
+    if (l.year) details += wvField('Year', l.year);
+  });
+  return `
+    <div style="margin-bottom:2rem">
+      <div style="${WV.sans}font-size:11px;color:#9e9890;margin-bottom:6px;">
+        <span style="font-size:1.1rem;font-weight:500;color:#1a1816;font-family:'Georgia',serif;">${total - rank + 1}</span>
+      </div>
+      <div style="${WV.serif}font-size:1.5rem;font-style:italic;line-height:1.15;color:#1a1816;margin-bottom:8px;">${names.map(n=>esc(n)).join(' / ')}</div>
+      ${details}
+      ${entry.feelings ? `<div style="margin-top:10px;font-size:13px;color:#4a4642;line-height:1.65;${WV.serif}font-style:italic;">${esc(entry.feelings)}</div>` : ''}
+    </div>`;
+}
+
+function showWebView() {
+  const types = ['artists','albums','tracks'];
+  const colIds = ['wv-col-artists','wv-col-albums','wv-col-tracks'];
+  const colTitles = ['Artists','Albums','Tracks'];
+  const renderers = [wvRenderArtist, wvRenderAlbum, wvRenderTrack];
+
+  types.forEach((type, ti) => {
+    const entries = [...state[type].ranked].reverse();
+    const total = state[type].ranked.length;
+    const header = `<div style="${WV.sans}font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:#9e9890;font-weight:500;padding-bottom:10px;border-bottom:0.5px solid #c8c4be;margin-bottom:1.5rem;">${colTitles[ti]} <span style="opacity:0.6">${total}/50</span></div>`;
+    const rows = entries.map((entry, i) => {
+      const rank = i + 1; // rank 1 = last in reversed array = highest ranked
+      const html = renderers[ti](entry, rank, total);
+      return html + (i < entries.length-1 ? `<hr style="${WV.divider}">` : '');
+    }).join('');
+    document.getElementById(colIds[ti]).innerHTML = header + (rows || '<div style="font-size:12px;color:#9e9890;text-align:center;padding:2rem;">Nothing ranked yet</div>');
+  });
+
   document.getElementById('web-view-overlay').style.display = 'block';
-  window.scrollTo(0,0);
+  document.getElementById('web-view-overlay').scrollTop = 0;
 }
 
 function hideWebView() {
